@@ -1,0 +1,481 @@
+// GATI platform — data model
+// Scoped to Meerut today, but every record carries chapterId so adding a
+// second JBN chapter later is seeding rows, not a migration rewrite.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // Switch provider to "sqlite" + url "file:./dev.db" for laptop dev with zero infra.
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum JitoMembership {
+  PATRON
+  CP
+  FCP
+  NONE
+}
+
+enum CardStatus {
+  ACTIVE
+  UNASSIGNED
+  LOST       // re-issue a new card, keep the member + slug stable
+}
+
+enum ReferralStatus {
+  NEW
+  IN_PROGRESS
+  CLOSED
+}
+
+enum SetuType {
+  NEED
+  OFFER
+}
+
+enum SetuStatus {
+  OPEN
+  MATCHED
+  CLOSED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  SUBSTITUTE
+}
+
+model Chapter {
+  id        String          @id @default(cuid())
+  name      String
+  slug      String          @unique
+  city      String
+  brandName String?                       // chapter brand, e.g. "GATI" (Meerut)
+  logoUrl   String?                       // chapter logo shown on member profiles
+  referralFeePct Decimal     @default(0) @db.Decimal(5,2)  // community referral fee, default 0
+  createdAt DateTime        @default(now())
+  groups    ReferralGroup[]
+  members   Member[]
+  setuPosts SetuPost[]
+  meetings  Meeting[]
+  referrals Referral[]
+}
+
+model ReferralGroup {
+  id        String   @id @default(cuid())
+  chapter   Chapter  @relation(fields: [chapterId], references: [id])
+  chapterId String
+  name      String
+  members   Member[]
+
+  @@unique([chapterId, name])
+}
+
+model Member {
+  id             String         @id @default(cuid())
+  chapter        Chapter        @relation(fields: [chapterId], references: [id])
+  chapterId      String
+  group          ReferralGroup? @relation(fields: [groupId], references: [id])
+  groupId        String?
+  name           String
+  slug           String         @unique // public handle, drives /m/:slug card URL
+  email          String         @unique
+  phone          String?
+  whatsapp       String?
+  company        String?
+  category       String? // business category — one seat per category per group
+  about          String?
+  website        String?
+  photoUrl       String?
+  coverUrl       String?
+  brandName      String?
+  address        String?
+  subCategory    String?
+  productImages  String?   // comma-separated product image links
+  mustResetPwd   Boolean    @default(true)   // temp password from bulk import
+  jitoMembership JitoMembership @default(NONE)
+  verified       Boolean        @default(false) // confirmed against JITO Apex records
+  role           String         @default("MEMBER")  // RoleDef.key
+  passwordHash   String
+  gatiScore      Int            @default(0)
+  active         Boolean        @default(true)  // offboarding flips this off
+  leftAt         DateTime?                      // when they left the community
+  siteDomain     String?                        // their own brand site, e.g. dailyloom.in
+  domainToken    String?                        // DNS/file token to prove they own it
+  domainVerifiedAt DateTime?                    // verified outbound link -> both rank in search
+  createdAt      DateTime       @default(now())
+
+  cards            NfcCard[]
+  taps             CardTap[]
+  leads            Lead[]
+  referralsGiven   Referral[]   @relation("given")
+  referralsGot     Referral[]   @relation("received")
+  setuPosts        SetuPost[]
+  attendance       Attendance[]
+  products         Product[]
+  featureGrants  FeatureGrant[]
+  messagesSent     Message[]     @relation("msgFrom")
+  messagesReceived Message[]     @relation("msgTo")
+
+  // One business category may only be held by one member within a group.
+  @@unique([groupId, category])
+}
+
+model NfcCard {
+  id         String     @id @default(cuid())
+  member     Member?    @relation(fields: [memberId], references: [id])
+  memberId   String?
+  token      String     @unique // encoded on the physical NFC chip
+  status     CardStatus @default(UNASSIGNED)
+  batchRef   String? // print/issue batch for ops tracking
+  issuedAt   DateTime?
+  lastTapAt  DateTime?
+  createdAt  DateTime   @default(now())
+  taps       CardTap[]
+}
+
+model CardTap {
+  id        String   @id @default(cuid())
+  card      NfcCard  @relation(fields: [cardId], references: [id])
+  cardId    String
+  member    Member?  @relation(fields: [memberId], references: [id])
+  memberId  String?
+  source    String? // nfc | qr | link
+  userAgent String?
+  city      String?
+  tappedAt  DateTime @default(now())
+}
+
+// Reverse capture: the person who tapped a card can leave their own details.
+model Lead {
+  id        String   @id @default(cuid())
+  member    Member   @relation(fields: [memberId], references: [id]) // whose card was tapped
+  memberId  String
+  name      String
+  phone     String?
+  email     String?
+  company   String?
+  note      String?
+  createdAt DateTime @default(now())
+}
+
+model Referral {
+  id           String         @id @default(cuid())
+  chapter      Chapter        @relation(fields: [chapterId], references: [id])
+  chapterId    String
+  from         Member         @relation("given", fields: [fromMemberId], references: [id])
+  fromMemberId String
+  to           Member?        @relation("received", fields: [toMemberId], references: [id])
+  toMemberId   String?
+  contactName  String
+  detail       String?
+  status       ReferralStatus @default(NEW)
+  closedAmount Decimal?       @db.Decimal(14, 2) // TYFCB / closed business in INR
+  createdAt    DateTime       @default(now())
+}
+
+model SetuPost {
+  id        String     @id @default(cuid())
+  chapter   Chapter    @relation(fields: [chapterId], references: [id])
+  chapterId String
+  member    Member     @relation(fields: [memberId], references: [id])
+  memberId  String
+  type      SetuType
+  category  String
+  text      String
+  status    SetuStatus @default(OPEN)
+  createdAt DateTime   @default(now())
+  replies   SetuReply[]
+}
+
+model Meeting {
+  id          String       @id @default(cuid())
+  chapter     Chapter      @relation(fields: [chapterId], references: [id])
+  chapterId   String
+  title       String
+  location    String?
+  startsAt    DateTime
+  type        String       @default("INTERNAL")
+  description String?
+  feeAmount   Int?
+  upiId       String?
+  bankDetails String?
+  attendanceClosed Boolean   @default(false)
+  attendance  Attendance[]
+}
+
+model Attendance {
+  id        String           @id @default(cuid())
+  meeting   Meeting          @relation(fields: [meetingId], references: [id])
+  meetingId String
+  member    Member           @relation(fields: [memberId], references: [id])
+  memberId  String
+  status    AttendanceStatus @default(PRESENT)
+  paid      Boolean          @default(false)
+  paidAt    DateTime?
+
+  @@unique([meetingId, memberId])
+}
+
+
+// ---------- Audit: append-only history of every admin action ----------
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  actorName String?
+  role      String?
+  action    String   // e.g. MEMBER_OFFBOARD, MEMBER_VERIFY, AD_STATUS, ORDER_REFUND
+  entity    String?  // Member | NfcCard | AdCampaign | Order ...
+  entityId  String?
+  summary   String?  // human-readable line shown in the console
+  meta      Json?    // before/after or extra context
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
+
+// ---------- Owned ad system (no AdSense; native, community-sold slots) ----------
+enum AdSlot {
+  HOME_HERO
+  DIRECTORY_INLINE
+  PROFILE_FOOTER
+}
+enum AdStatus {
+  DRAFT
+  LIVE
+  PAUSED
+  ENDED
+}
+
+model Sponsor {
+  id        String       @id @default(cuid())
+  name      String
+  contact   String?
+  createdAt DateTime     @default(now())
+  campaigns AdCampaign[]
+}
+
+model AdCampaign {
+  id         String   @id @default(cuid())
+  sponsor    Sponsor  @relation(fields: [sponsorId], references: [id])
+  sponsorId  String
+  slot       AdSlot
+  title      String
+  imageUrl   String?
+  targetUrl  String
+  status     AdStatus @default(DRAFT)
+  startsAt   DateTime?
+  endsAt     DateTime?
+  impressions Int     @default(0)
+  clicks     Int      @default(0)
+  createdAt  DateTime @default(now())
+}
+
+// ---------- Marketplace (Phase 3): catalog + order + split payment + fulfillment ----------
+enum OrderStatus {
+  PLACED
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  member      Member   @relation(fields: [memberId], references: [id])
+  memberId    String
+  name        String
+  description String?
+  priceInr    Decimal  @db.Decimal(12, 2)
+  imageUrl    String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  orders      Order[]
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  product       Product     @relation(fields: [productId], references: [id])
+  productId     String
+  buyerName     String
+  buyerPhone    String?
+  amountInr     Decimal     @db.Decimal(12, 2)
+  platformFeeInr Decimal    @db.Decimal(12, 2) @default(0) // community fee (split payment)
+  sellerNetInr  Decimal     @db.Decimal(12, 2) @default(0)
+  paymentRef    String?     // Razorpay Route / PayU reference
+  status        OrderStatus @default(PLACED)
+  createdAt     DateTime    @default(now())
+}
+
+
+// ---------- Hierarchy: broadcasts, invites, read receipts ----------
+enum BroadcastKind {
+  MESSAGE
+  MEETING_INVITE
+  EVENT_INVITE
+}
+enum BroadcastScope {
+  CHAPTER_LEADERS
+  CHAPTER_MEMBERS
+}   // who it goes to
+
+model Broadcast {
+  id           String         @id @default(cuid())
+  chapterId    String?        // null = network-wide (super-admin to chapter leaders)
+  fromMemberId String
+  kind         BroadcastKind  @default(MESSAGE)
+  scope        BroadcastScope
+  title        String
+  body         String
+  eventAt      DateTime?      // for meeting/event invites
+  createdAt    DateTime       @default(now())
+}
+
+model BroadcastReceipt {
+  id          String   @id @default(cuid())
+  broadcastId String
+  memberId    String
+  readAt      DateTime @default(now())
+
+  @@unique([broadcastId, memberId])
+}
+
+// ---------- Hierarchy: configurable payment screens ----------
+enum PaymentType {
+  AD
+  QUARTERLY_MEETING
+  YEARLY_COMMUNITY
+  CUSTOM
+}
+enum PaymentStatus {
+  DUE
+  PAID
+  WAIVED
+}
+
+model PaymentRequest {
+  id         String        @id @default(cuid())
+  chapterId  String
+  memberId   String
+  type       PaymentType
+  amountInr  Decimal       @db.Decimal(12,2)
+  note       String?
+  upiId      String?
+  bankDetails String?
+  status     PaymentStatus @default(DUE)
+  memberPaid Boolean       @default(false)
+  memberPaidAt DateTime?
+  gatesAdId  String?       // if set, this ad only goes LIVE once the request is PAID
+  createdAt  DateTime      @default(now())
+  paidAt     DateTime?
+}
+
+
+// ---------- Configurable roles (the hierarchy, editable by super-admin) ----------
+enum ScopeLevel {
+  NETWORK
+  CHAPTER
+  SELF
+}
+
+model RoleDef {
+  key           String     @id          // e.g. CHAPTER_CHAIRMAN, CONVENER, MEMBER
+  label         String                  // "Chapter Chairman"
+  scopeLevel    ScopeLevel @default(SELF)
+  rank          Int        @default(100) // lower = more senior
+  isOfficeBearer Boolean   @default(false)
+  capabilities  String[]                // capability keys this role holds
+  canOnboard    String[]                // role keys this role is allowed to onboard
+  active        Boolean    @default(true)
+}
+
+// ---------- Onboarding by invitation (super-admin -> office bearers -> members) ----------
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
+model Invitation {
+  id           String       @id @default(cuid())
+  chapterId    String
+  email        String
+  name         String
+  roleKey      String       // the role being granted
+  token        String       @unique
+  invitedById  String?      // who sent it
+  status       InviteStatus @default(PENDING)
+  createdAt    DateTime     @default(now())
+  acceptedAt   DateTime?
+
+  @@index([chapterId, status])
+}
+
+
+// ---------- OTP-based login verification ----------
+enum OtpChannel {
+  EMAIL
+  SMS
+}
+
+model Otp {
+  id         String     @id @default(cuid())
+  memberId   String
+  codeHash   String
+  channel    OtpChannel @default(EMAIL)
+  attempts   Int        @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime   @default(now())
+
+  @@index([memberId, createdAt])
+}
+
+model FeatureGrant {
+  id        String   @id @default(cuid())
+  feature   String
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  memberId  String
+  createdAt DateTime @default(now())
+
+  @@unique([feature, memberId])
+}
+
+model Message {
+  id        String    @id @default(cuid())
+  from      Member    @relation("msgFrom", fields: [fromId], references: [id])
+  fromId    String
+  to        Member    @relation("msgTo", fields: [toId], references: [id])
+  toId      String
+  body      String
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
+}
+
+model SetuReply {
+  id         String   @id @default(cuid())
+  post       SetuPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId     String
+  memberId   String
+  memberName String
+  text       String
+  createdAt  DateTime @default(now())
+}
+
+model ProfileEdit {
+  id         String    @id @default(cuid())
+  memberId   String
+  memberName String
+  chapterId  String?
+  data       Json
+  status     String    @default("PENDING")
+  createdAt  DateTime  @default(now())
+  reviewedAt DateTime?
+}

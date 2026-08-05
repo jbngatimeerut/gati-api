@@ -1,0 +1,11 @@
+node_modules/
+dist/
+uploads/
+*.log
+npm-debug.log*
+.env
+.env.*
+!.env.example
+prisma/*.db
+onboarding-credentials.csv
+.DS_Store

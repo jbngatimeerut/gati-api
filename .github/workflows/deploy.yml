@@ -1,0 +1,36 @@
+name: Deploy API to GCP VM
+# ~/gati-platform/api (prod) and ~/gati-platform-uat/api (UAT) on the VM are checkouts of this
+# repo. The docker-compose files that build/run them live one level up, in the gati-infra repo.
+on:
+  push:
+    branches: [master, uat]
+jobs:
+  deploy-prod:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy API (prod) over SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.GCP_VM_HOST }}
+          username: ${{ secrets.GCP_VM_USER }}
+          key: ${{ secrets.GCP_VM_SSH_KEY }}
+          script: |
+            cd ~/gati-platform/api && git pull origin master
+            cd ~/gati-platform && docker compose -f docker-compose.prod.yml up -d --build api
+            docker image prune -f
+
+  deploy-uat:
+    if: github.ref == 'refs/heads/uat'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy API (UAT) over SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.GCP_VM_HOST }}
+          username: ${{ secrets.GCP_VM_USER }}
+          key: ${{ secrets.GCP_VM_SSH_KEY }}
+          script: |
+            cd ~/gati-platform-uat/api && git pull origin uat
+            cd ~/gati-platform-uat && docker compose -f docker-compose.uat.yml up -d --build api
+            docker image prune -f

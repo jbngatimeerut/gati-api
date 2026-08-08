@@ -14,20 +14,23 @@ export class MailerService {
 
   private async send(to: string, subject: string, html: string) {
     if (!this.tx) { this.log.warn(`[no SMTP] would email ${to}: ${subject}`); return; }
-    await this.tx.sendMail({ from: process.env.MAIL_FROM || 'GATI <no-reply@jito.app>', to, subject, html });
+    await this.tx.sendMail({ from: process.env.MAIL_FROM || 'JBN Gati <no-reply@jito.app>', to, subject, html });
   }
 
   sendOtp(to: string, code: string) {
-    return this.send(to, 'Your GATI login code',
-      `<p>Your one-time login code is <b style="font-size:20px">${code}</b>. It expires in 5 minutes.</p>`);
+    return this.send(to, 'Your JBN Gati verification code',
+      `<p>Please use the verification code below to sign in to your JBN Gati account.</p>
+       <p style="font-size:24px;font-weight:bold;letter-spacing:2px">${code}</p>
+       <p>This code will expire in 5 minutes. If you did not request this, you can safely ignore this email.</p>
+       <p>Regards,<br/>JBN Gati</p>`);
   }
 
   sendWelcome(to: string, name: string, tempPassword: string, profileUrl: string) {
-    return this.send(to, 'Welcome to JITO GATI — your profile is live',
-      `<p>Namaste ${name},</p>
-       <p>Your JBN GATI profile is live: <a href="${profileUrl}">${profileUrl}</a></p>
-       <p>Sign in with this email and a temporary password: <b>${tempPassword}</b><br/>
-       Please change it after your first login.</p>
-       <p>— JITO Business Network</p>`);
+    return this.send(to, 'Welcome to JBN Gati — your profile is now live',
+      `<p>Dear ${name},</p>
+       <p>Your JBN Gati profile is now live: <a href="${profileUrl}">${profileUrl}</a></p>
+       <p>You may sign in using this email address and the temporary password below. For security, please change it after your first login.</p>
+       <p>Temporary password: <b>${tempPassword}</b></p>
+       <p>Regards,<br/>JBN Gati</p>`);
   }
 }

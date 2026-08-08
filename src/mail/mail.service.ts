@@ -4,7 +4,7 @@ import * as nodemailer from 'nodemailer';
 @Injectable()
 export class MailService {
   private log = new Logger('MailService');
-  private from = process.env.MAIL_FROM || 'JBN GATI <no-reply@gati.app>';
+  private from = process.env.MAIL_FROM || 'JBN Gati <no-reply@gati.app>';
   private tx = process.env.SMTP_HOST
     ? nodemailer.createTransport({
         host: process.env.SMTP_HOST,
@@ -20,17 +20,20 @@ export class MailService {
   }
 
   sendOtp(to: string, code: string) {
-    return this.send(to, 'Your GATI login code',
-      `<p>Your one-time login code is <b style="font-size:20px">${code}</b>. It expires in 5 minutes.</p>`);
+    return this.send(to, 'Your JBN Gati verification code',
+      `<p>Please use the verification code below to sign in to your JBN Gati account.</p>
+       <p style="font-size:24px;font-weight:bold;letter-spacing:2px">${code}</p>
+       <p>This code will expire in 5 minutes. If you did not request this, you can safely ignore this email.</p>
+       <p>Regards,<br/>JBN Gati</p>`);
   }
 
   sendWelcome(to: string, name: string, tempPassword: string, profileUrl: string) {
-    return this.send(to, 'Welcome to JBN GATI — your profile is live',
-      `<p>Namaste ${name},</p>
-       <p>Your JITO Business Network (GATI) profile is ready:</p>
+    return this.send(to, 'Welcome to JBN Gati — your profile is now live',
+      `<p>Dear ${name},</p>
+       <p>Your JBN Gati (JITO Business Network) profile has been created and is now live:</p>
        <p><a href="${profileUrl}">${profileUrl}</a></p>
-       <p>Log in with this email and the temporary password below, then change it:</p>
+       <p>You may sign in using this email address and the temporary password below. For security, please change it after your first login.</p>
        <p>Temporary password: <b>${tempPassword}</b></p>
-       <p>— JBN GATI, Meerut</p>`);
+       <p>Regards,<br/>JBN Gati, Meerut</p>`);
   }
 }

@@ -9,6 +9,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { LEADERSHIP } from '../auth/leadership';
+import { CreateLeadDto } from './lead.dto';
 
 @Controller()
 export class NfcController {
@@ -50,7 +51,7 @@ export class NfcController {
   }
 
   @Post('m/:slug/lead')
-  lead(@Param('slug') slug: string, @Body() dto: any) {
+  lead(@Param('slug') slug: string, @Body() dto: CreateLeadDto) {
     return this.nfc.createLead(slug, dto);
   }
 

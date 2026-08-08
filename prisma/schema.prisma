@@ -22,7 +22,7 @@ enum JitoMembership {
 enum CardStatus {
   ACTIVE
   UNASSIGNED
-  LOST       // re-issue a new card, keep the member + slug stable
+  LOST // re-issue a new card, keep the member + slug stable
 }
 
 enum ReferralStatus {
@@ -57,19 +57,19 @@ enum MeetingCategory {
 }
 
 model Chapter {
-  id        String          @id @default(cuid())
-  name      String
-  slug      String          @unique
-  city      String
-  brandName String?                       // chapter brand, e.g. "GATI" (Meerut)
-  logoUrl   String?                       // chapter logo shown on member profiles
-  referralFeePct Decimal     @default(0) @db.Decimal(5,2)  // community referral fee, default 0
-  createdAt DateTime        @default(now())
-  groups    ReferralGroup[]
-  members   Member[]
-  setuPosts SetuPost[]
-  meetings  Meeting[]
-  referrals Referral[]
+  id             String          @id @default(cuid())
+  name           String
+  slug           String          @unique
+  city           String
+  brandName      String? // chapter brand, e.g. "GATI" (Meerut)
+  logoUrl        String? // chapter logo shown on member profiles
+  referralFeePct Decimal         @default(0) @db.Decimal(5, 2) // community referral fee, default 0
+  createdAt      DateTime        @default(now())
+  groups         ReferralGroup[]
+  members        Member[]
+  setuPosts      SetuPost[]
+  meetings       Meeting[]
+  referrals      Referral[]
 }
 
 model ReferralGroup {
@@ -83,82 +83,84 @@ model ReferralGroup {
 }
 
 model Member {
-  id             String         @id @default(cuid())
-  chapter        Chapter        @relation(fields: [chapterId], references: [id])
-  chapterId      String
-  group          ReferralGroup? @relation(fields: [groupId], references: [id])
-  groupId        String?
+  id                String           @id @default(cuid())
+  chapter           Chapter          @relation(fields: [chapterId], references: [id])
+  chapterId         String
+  group             ReferralGroup?   @relation(fields: [groupId], references: [id])
+  groupId           String?
   premiumCategory   PremiumCategory? @relation(fields: [premiumCategoryId], references: [id])
   premiumCategoryId String?
-  name           String
-  slug           String         @unique // public handle, drives /m/:slug card URL
-  email          String         @unique
-  phone          String?
-  whatsapp       String?
-  company        String?
-  category       String? // business category — one seat per category per group
-  about          String?
-  website        String?
-  photoUrl       String?
-  coverUrl       String?
-  brandName      String?
-  address        String?
-  subCategory    String?
-  productImages  String?   // comma-separated product image links
-  labels         String?   // comma-separated specialty labels
+  name              String
+  slug              String           @unique // public handle, drives /m/:slug card URL
+  email             String           @unique
+  phone             String?
+  whatsapp          String?
+  company           String?
+  category          String? // business category — one seat per category per group
+  about             String?
+  website           String?
+  photoUrl          String?
+  coverUrl          String?
+  brandName         String?
+  address           String?
+  subCategory       String?
+  productImages     String? // comma-separated product image links
+  labels            String? // comma-separated specialty labels
 
   // AI semantic search index — a normalized embedding vector of the member's business profile
   // (name/company/brandName/category/subCategory/about/labels), refreshed whenever those fields
   // change. `searchEmbeddingProvider` records which model produced it, since switching providers
   // (e.g. adding a GEMINI_API_KEY later) changes vector dimensionality — search only compares
   // vectors from the same provider as the live query, never mixes them.
-  searchEmbedding         Float[]   @default([])
+  searchEmbedding         Float[]        @default([])
   searchEmbeddingProvider String?
   searchIndexedAt         DateTime?
-  mustResetPwd   Boolean    @default(true)   // temp password from bulk import
-  jitoMembership JitoMembership @default(NONE)
-  verified       Boolean        @default(false) // confirmed against JITO Apex records
-  role           String         @default("MEMBER")  // RoleDef.key
-  passwordHash   String
-  gatiScore      Int            @default(0)
-  active         Boolean        @default(true)  // offboarding flips this off
-  leftAt         DateTime?                      // when they left the community
-  siteDomain     String?                        // their own brand site, e.g. dailyloom.in
-  domainToken    String?                        // DNS/file token to prove they own it
-  domainVerifiedAt DateTime?                    // verified outbound link -> both rank in search
-  createdAt      DateTime       @default(now())
+  mustResetPwd            Boolean        @default(true) // temp password from bulk import
+  jitoMembership          JitoMembership @default(NONE)
+  verified                Boolean        @default(false) // confirmed against JITO Apex records
+  role                    String         @default("MEMBER") // RoleDef.key
+  passwordHash            String
+  gatiScore               Int            @default(0)
+  active                  Boolean        @default(true) // offboarding flips this off
+  leftAt                  DateTime? // when they left the community
+  siteDomain              String? // their own brand site, e.g. dailyloom.in
+  domainToken             String? // DNS/file token to prove they own it
+  domainVerifiedAt        DateTime? // verified outbound link -> both rank in search
+  createdAt               DateTime       @default(now())
 
-  cards            NfcCard[]
-  taps             CardTap[]
-  leads            Lead[]
-  referralsGiven   Referral[]   @relation("given")
-  referralsGot     Referral[]   @relation("received")
-  setuPosts        SetuPost[]
-  attendance       Attendance[]
-  meetingQrCodes   MeetingQrCode[]
-  products         Product[]
-  featureGrants  FeatureGrant[]
-  messagesSent     Message[]     @relation("msgFrom")
-  messagesReceived Message[]     @relation("msgTo")
-  notifications    Notification[]
-  deviceTokens     DeviceToken[]
-  sponsorProfiles  Sponsor[]
+  cards                   NfcCard[]
+  taps                    CardTap[]
+  leads                   Lead[]
+  referralsGiven          Referral[]       @relation("given")
+  referralsGot            Referral[]       @relation("received")
+  setuPosts               SetuPost[]
+  attendance              Attendance[]
+  meetingQrCodes          MeetingQrCode[]
+  products                Product[]
+  featureGrants           FeatureGrant[]
+  messagesSent            Message[]        @relation("msgFrom")
+  messagesReceived        Message[]        @relation("msgTo")
+  notifications           Notification[]
+  deviceTokens            DeviceToken[]
+  sponsorProfiles         Sponsor[]
+  adSignupInvitesReceived AdSignupInvite[] @relation("AdSignupInvitee")
+  adSignupInvitesSent     AdSignupInvite[] @relation("AdSignupInviter")
 
   // One business category may only be held by one member within a group.
   @@unique([groupId, category])
 }
 
 model NfcCard {
-  id         String     @id @default(cuid())
-  member     Member?    @relation(fields: [memberId], references: [id])
-  memberId   String?
-  token      String     @unique // encoded on the physical NFC chip
-  status     CardStatus @default(UNASSIGNED)
-  batchRef   String? // print/issue batch for ops tracking
-  issuedAt   DateTime?
-  lastTapAt  DateTime?
-  createdAt  DateTime   @default(now())
-  taps       CardTap[]
+  id        String     @id @default(cuid())
+  member    Member?    @relation(fields: [memberId], references: [id])
+  memberId  String?
+  token     String     @unique // encoded on the physical NFC chip
+  status    CardStatus @default(UNASSIGNED)
+  batchRef  String? // print/issue batch for ops tracking
+  issuedAt  DateTime?
+  lastTapAt DateTime?
+  createdAt DateTime   @default(now())
+  taps      CardTap[]
 }
 
 model CardTap {
@@ -175,16 +177,20 @@ model CardTap {
 
 // Reverse capture: the person who tapped a card can leave their own details.
 model Lead {
-  id        String   @id @default(cuid())
-  member    Member   @relation(fields: [memberId], references: [id]) // whose card was tapped
-  memberId  String
-  name      String
-  phone     String?
-  email     String?
-  company   String?
-  interests String?  // comma-separated — what the visitor is interested in, picked from the member's own specialty labels
-  note      String?
-  createdAt DateTime @default(now())
+  id         String      @id @default(cuid())
+  member     Member      @relation(fields: [memberId], references: [id]) // whose card was tapped
+  memberId   String
+  name       String
+  phone      String?
+  email      String?
+  company    String?
+  interests  String? // comma-separated — what the visitor is interested in, picked from the member's own specialty labels
+  note       String?
+  campaign   AdCampaign? @relation(fields: [campaignId], references: [id])
+  campaignId String? // set when this lead came from an ad's "connect" CTA, for per-campaign lead attribution
+  createdAt  DateTime    @default(now())
+
+  @@index([campaignId])
 }
 
 model Referral {
@@ -203,46 +209,46 @@ model Referral {
 }
 
 model SetuPost {
-  id        String     @id @default(cuid())
-  chapter   Chapter    @relation(fields: [chapterId], references: [id])
+  id        String      @id @default(cuid())
+  chapter   Chapter     @relation(fields: [chapterId], references: [id])
   chapterId String
-  member    Member     @relation(fields: [memberId], references: [id])
+  member    Member      @relation(fields: [memberId], references: [id])
   memberId  String
   type      SetuType
   category  String
   text      String
-  status    SetuStatus @default(OPEN)
-  createdAt DateTime   @default(now())
+  status    SetuStatus  @default(OPEN)
+  createdAt DateTime    @default(now())
   replies   SetuReply[]
 }
 
 model Meeting {
-  id          String       @id @default(cuid())
-  chapter     Chapter      @relation(fields: [chapterId], references: [id])
-  chapterId   String
-  title       String
-  location    String?
-  startsAt    DateTime
-  type        String       @default("INTERNAL")
-  category    MeetingCategory @default(REFERRAL)
-  description String?
-  feeAmount   Int?
-  upiId       String?
-  bankDetails String?
-  attendanceClosed Boolean   @default(false)
-  attendance  Attendance[]
-  qrCodes     MeetingQrCode[]
+  id               String          @id @default(cuid())
+  chapter          Chapter         @relation(fields: [chapterId], references: [id])
+  chapterId        String
+  title            String
+  location         String?
+  startsAt         DateTime
+  type             String          @default("INTERNAL")
+  category         MeetingCategory @default(REFERRAL)
+  description      String?
+  feeAmount        Int?
+  upiId            String?
+  bankDetails      String?
+  attendanceClosed Boolean         @default(false)
+  attendance       Attendance[]
+  qrCodes          MeetingQrCode[]
 }
 
 model Attendance {
-  id        String           @id @default(cuid())
-  meeting   Meeting          @relation(fields: [meetingId], references: [id])
-  meetingId String
-  member    Member           @relation(fields: [memberId], references: [id])
-  memberId  String
-  status    AttendanceStatus @default(PRESENT)
-  paid      Boolean          @default(false)
-  paidAt    DateTime?
+  id         String           @id @default(cuid())
+  meeting    Meeting          @relation(fields: [meetingId], references: [id])
+  meetingId  String
+  member     Member           @relation(fields: [memberId], references: [id])
+  memberId   String
+  status     AttendanceStatus @default(PRESENT)
+  paid       Boolean          @default(false)
+  paidAt     DateTime?
   // Who scanned this member in — leadership only, and never the same member (no self-marking).
   markedById String?
 
@@ -253,20 +259,19 @@ model Attendance {
 // their meeting screen; scanning it (by a leadership member) marks attendance and immediately
 // invalidates it so it can never be reused or shared as a photo.
 model MeetingQrCode {
-  id         String    @id @default(cuid())
-  meeting    Meeting   @relation(fields: [meetingId], references: [id])
-  meetingId  String
-  member     Member    @relation(fields: [memberId], references: [id])
-  memberId   String
-  token      String    @unique
-  used       Boolean   @default(false)
-  usedAt     DateTime?
-  usedById   String?
-  createdAt  DateTime  @default(now())
+  id        String    @id @default(cuid())
+  meeting   Meeting   @relation(fields: [meetingId], references: [id])
+  meetingId String
+  member    Member    @relation(fields: [memberId], references: [id])
+  memberId  String
+  token     String    @unique
+  used      Boolean   @default(false)
+  usedAt    DateTime?
+  usedById  String?
+  createdAt DateTime  @default(now())
 
   @@unique([meetingId, memberId])
 }
-
 
 // ---------- Audit: append-only history of every admin action ----------
 model AuditLog {
@@ -274,11 +279,11 @@ model AuditLog {
   actorId   String?
   actorName String?
   role      String?
-  action    String   // e.g. MEMBER_OFFBOARD, MEMBER_VERIFY, AD_STATUS, ORDER_REFUND
-  entity    String?  // Member | NfcCard | AdCampaign | Order ...
+  action    String // e.g. MEMBER_OFFBOARD, MEMBER_VERIFY, AD_STATUS, ORDER_REFUND
+  entity    String? // Member | NfcCard | AdCampaign | Order ...
   entityId  String?
-  summary   String?  // human-readable line shown in the console
-  meta      Json?    // before/after or extra context
+  summary   String? // human-readable line shown in the console
+  meta      Json? // before/after or extra context
   ip        String?
   createdAt DateTime @default(now())
 
@@ -287,32 +292,48 @@ model AuditLog {
 }
 
 // ---------- Owned ad system (no AdSense; native, community-sold slots) ----------
+// Placement is a single horizontal banner strip, reused wherever an ad runs — never its own
+// destination screen. These are the slots a campaign is directly assigned to; "HOME_TOP" (above
+// the Home search bar) is a synthetic fifth placement handled entirely in AdsService.serveAds —
+// it isn't a value a campaign is ever assigned, it's a live view over every LIVE named-sponsorship
+// campaign (tierId set) regardless of its assigned slot, so named sponsors don't have to configure
+// a second campaign just to also appear there. SPONSORS_PAGE / a standalone sponsors screen was
+// removed; named-sponsor branding instead surfaces as a logo strip on the pre-login screen
+// (AdsService.namedSponsorLogos()).
 enum AdSlot {
   HOME_HERO
   DIRECTORY_INLINE
   PROFILE_FOOTER
   SETU_INLINE
-  SPONSORS_PAGE
 }
+
 enum AdStatus {
-  DRAFT
+  DRAFT // leadership-created directly via the admin console, not yet activated
+  PENDING_APPROVAL // member submitted the signup form; awaiting leadership review + offline payment
   LIVE
   PAUSED
   ENDED
+}
+
+enum AdSignupStatus {
+  PENDING
+  SUBMITTED
+  EXPIRED
 }
 
 // Named sponsorship ladder (Title Sponsor / Powered By / Co-Powered By ...) — leadership-defined,
 // exact mirror of PremiumCategory below. One tier can hold many concurrent campaigns (e.g. three
 // businesses sharing "Co-Powered By"), rotated fairly by AdsService.serveAds().
 model SponsorshipTier {
-  id        String       @id @default(cuid())
+  id        String           @id @default(cuid())
   chapterId String?
   name      String
-  priority  Int          @default(100)
+  priority  Int              @default(100)
   color     String
-  active    Boolean      @default(true)
-  createdAt DateTime     @default(now())
+  active    Boolean          @default(true)
+  createdAt DateTime         @default(now())
   campaigns AdCampaign[]
+  invites   AdSignupInvite[]
 }
 
 model Sponsor {
@@ -326,24 +347,69 @@ model Sponsor {
 }
 
 model AdCampaign {
-  id         String   @id @default(cuid())
-  sponsor    Sponsor  @relation(fields: [sponsorId], references: [id])
-  sponsorId  String
-  tier       SponsorshipTier? @relation(fields: [tierId], references: [id])
-  tierId     String?  // null = untiered "Community Spotlight" ad
-  chapterId  String?  // null = network-wide, mirrors SponsorshipTier/PremiumCategory
-  slot       AdSlot
-  title      String
-  imageUrl   String?
-  targetUrl  String
-  status     AdStatus @default(DRAFT)
-  startsAt   DateTime?
-  endsAt     DateTime?
-  impressions Int     @default(0)
-  clicks     Int      @default(0)
-  createdAt  DateTime @default(now())
+  id                String           @id @default(cuid())
+  sponsor           Sponsor          @relation(fields: [sponsorId], references: [id])
+  sponsorId         String
+  tier              SponsorshipTier? @relation(fields: [tierId], references: [id])
+  tierId            String? // null = untiered "Community Spotlight" ad
+  chapterId         String? // null = network-wide, mirrors SponsorshipTier/PremiumCategory
+  slot              AdSlot
+  title             String
+  imageUrl          String?
+  videoUrl          String? // at most one of imageUrl/videoUrl is used per campaign; video takes precedence when both are set
+  logoUrl           String? // business logo — shown in the pre-login named-sponsor strip, not in the ad banner itself
+  // Where the "Connect" CTA goes. Null when the sponsor is a member (auto-resolved to their
+  // digital-card profile at serve time by AdsService); set only for sponsors with no member
+  // profile on the platform.
+  targetUrl         String?
+  status            AdStatus         @default(DRAFT)
+  startsAt          DateTime?
+  endsAt            DateTime?
+  impressions       Int              @default(0)
+  clicks            Int              @default(0)
+  createdAt         DateTime         @default(now())
   // Dedupes the expiry-sweep notification — exact mirror of PaymentRequest.overdueNotifiedAt.
   expiredNotifiedAt DateTime?
+
+  signupInvite AdSignupInvite?
+  leads        Lead[]
+  deals        AdDeal[]
+}
+
+// Leadership invites one member (who has manually arranged sponsorship with them) to fill the
+// ad signup form, with a hard deadline. No payment gateway: the resulting campaign starts
+// PENDING_APPROVAL and only goes LIVE once leadership confirms the offline payment and sets the
+// run dates via AdsService.activateCampaign().
+model AdSignupInvite {
+  id          String           @id @default(cuid())
+  member      Member           @relation("AdSignupInvitee", fields: [memberId], references: [id])
+  memberId    String
+  tier        SponsorshipTier? @relation(fields: [tierId], references: [id])
+  tierId      String? // null = generic Community Spotlight ad, not a named sponsorship tier
+  deadline    DateTime
+  status      AdSignupStatus   @default(PENDING)
+  campaign    AdCampaign?      @relation(fields: [campaignId], references: [id])
+  campaignId  String?          @unique
+  createdBy   Member?          @relation("AdSignupInviter", fields: [createdById], references: [id])
+  createdById String?
+  createdAt   DateTime         @default(now())
+  submittedAt DateTime?
+
+  @@index([memberId, status])
+}
+
+// A closed-business entry a sponsor logs against their own running/ended campaign. The amount is
+// private — never exposed on any public or member-facing endpoint other than the sponsor's own
+// dashboard and the leadership revenue overview.
+model AdDeal {
+  id         String     @id @default(cuid())
+  campaign   AdCampaign @relation(fields: [campaignId], references: [id])
+  campaignId String
+  amountInr  Decimal    @db.Decimal(12, 2)
+  note       String?
+  createdAt  DateTime   @default(now())
+
+  @@index([campaignId])
 }
 
 // ---------- Marketplace (Phase 3): catalog + order + split payment + fulfillment ----------
@@ -370,19 +436,18 @@ model Product {
 }
 
 model Order {
-  id            String      @id @default(cuid())
-  product       Product     @relation(fields: [productId], references: [id])
-  productId     String
-  buyerName     String
-  buyerPhone    String?
-  amountInr     Decimal     @db.Decimal(12, 2)
-  platformFeeInr Decimal    @db.Decimal(12, 2) @default(0) // community fee (split payment)
-  sellerNetInr  Decimal     @db.Decimal(12, 2) @default(0)
-  paymentRef    String?     // Razorpay Route / PayU reference
-  status        OrderStatus @default(PLACED)
-  createdAt     DateTime    @default(now())
+  id             String      @id @default(cuid())
+  product        Product     @relation(fields: [productId], references: [id])
+  productId      String
+  buyerName      String
+  buyerPhone     String?
+  amountInr      Decimal     @db.Decimal(12, 2)
+  platformFeeInr Decimal     @default(0) @db.Decimal(12, 2) // community fee (split payment)
+  sellerNetInr   Decimal     @default(0) @db.Decimal(12, 2)
+  paymentRef     String? // Razorpay Route / PayU reference
+  status         OrderStatus @default(PLACED)
+  createdAt      DateTime    @default(now())
 }
-
 
 // ---------- Hierarchy: broadcasts, invites, read receipts ----------
 enum BroadcastKind {
@@ -390,20 +455,22 @@ enum BroadcastKind {
   MEETING_INVITE
   EVENT_INVITE
 }
+
 enum BroadcastScope {
   CHAPTER_LEADERS
   CHAPTER_MEMBERS
-}   // who it goes to
+}
+// who it goes to
 
 model Broadcast {
   id           String         @id @default(cuid())
-  chapterId    String?        // null = network-wide (super-admin to chapter leaders)
+  chapterId    String? // null = network-wide (super-admin to chapter leaders)
   fromMemberId String
   kind         BroadcastKind  @default(MESSAGE)
   scope        BroadcastScope
   title        String
   body         String
-  eventAt      DateTime?      // for meeting/event invites
+  eventAt      DateTime? // for meeting/event invites
   createdAt    DateTime       @default(now())
 }
 
@@ -423,6 +490,7 @@ enum PaymentType {
   YEARLY_COMMUNITY
   CUSTOM
 }
+
 enum PaymentStatus {
   DUE
   PAID
@@ -430,20 +498,20 @@ enum PaymentStatus {
 }
 
 model PaymentRequest {
-  id         String        @id @default(cuid())
-  chapterId  String
-  memberId   String
-  type       PaymentType
-  amountInr  Decimal       @db.Decimal(12,2)
-  note       String?
-  upiId      String?
-  bankDetails String?
-  status     PaymentStatus @default(DUE)
-  memberPaid Boolean       @default(false)
-  memberPaidAt DateTime?
-  gatesAdId  String?       // if set, this ad only goes LIVE once the request is PAID
-  createdAt  DateTime      @default(now())
-  paidAt     DateTime?
+  id                String        @id @default(cuid())
+  chapterId         String
+  memberId          String
+  type              PaymentType
+  amountInr         Decimal       @db.Decimal(12, 2)
+  note              String?
+  upiId             String?
+  bankDetails       String?
+  status            PaymentStatus @default(DUE)
+  memberPaid        Boolean       @default(false)
+  memberPaidAt      DateTime?
+  gatesAdId         String? // if set, this ad only goes LIVE once the request is PAID
+  createdAt         DateTime      @default(now())
+  paidAt            DateTime?
   // Optional grace-period deadline. Restriction is never a stored flag — a member is
   // payment-restricted iff they have a DUE request with dueAt in the past (checked live,
   // see payments.service.ts isRestricted()). overdueNotifiedAt just dedupes the cron sweep's
@@ -451,7 +519,6 @@ model PaymentRequest {
   dueAt             DateTime?
   overdueNotifiedAt DateTime?
 }
-
 
 // ---------- Configurable roles (the hierarchy, editable by super-admin) ----------
 enum ScopeLevel {
@@ -461,14 +528,14 @@ enum ScopeLevel {
 }
 
 model RoleDef {
-  key           String     @id          // e.g. CHAPTER_CHAIRMAN, CONVENER, MEMBER
-  label         String                  // "Chapter Chairman"
-  scopeLevel    ScopeLevel @default(SELF)
-  rank          Int        @default(100) // lower = more senior
-  isOfficeBearer Boolean   @default(false)
-  capabilities  String[]                // capability keys this role holds
-  canOnboard    String[]                // role keys this role is allowed to onboard
-  active        Boolean    @default(true)
+  key            String     @id // e.g. CHAPTER_CHAIRMAN, CONVENER, MEMBER
+  label          String // "Chapter Chairman"
+  scopeLevel     ScopeLevel @default(SELF)
+  rank           Int        @default(100) // lower = more senior
+  isOfficeBearer Boolean    @default(false)
+  capabilities   String[] // capability keys this role holds
+  canOnboard     String[] // role keys this role is allowed to onboard
+  active         Boolean    @default(true)
 }
 
 // ---------- Onboarding by invitation (super-admin -> office bearers -> members) ----------
@@ -480,20 +547,19 @@ enum InviteStatus {
 }
 
 model Invitation {
-  id           String       @id @default(cuid())
-  chapterId    String
-  email        String
-  name         String
-  roleKey      String       // the role being granted
-  token        String       @unique
-  invitedById  String?      // who sent it
-  status       InviteStatus @default(PENDING)
-  createdAt    DateTime     @default(now())
-  acceptedAt   DateTime?
+  id          String       @id @default(cuid())
+  chapterId   String
+  email       String
+  name        String
+  roleKey     String // the role being granted
+  token       String       @unique
+  invitedById String? // who sent it
+  status      InviteStatus @default(PENDING)
+  createdAt   DateTime     @default(now())
+  acceptedAt  DateTime?
 
   @@index([chapterId, status])
 }
-
 
 // ---------- OTP-based login verification ----------
 enum OtpChannel {
@@ -530,13 +596,13 @@ model FeatureGrant {
 // search.service.ts. Feature permissions here are additive to (never subtract from) a member's
 // individual FeatureGrant rows — see members.service.ts myFeatures().
 model PremiumCategory {
-  id          String   @id @default(cuid())
-  chapterId   String?
-  name        String
-  priority    Int      @default(100)
-  color       String
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  chapterId String?
+  name      String
+  priority  Int      @default(100)
+  color     String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
 
   members     Member[]
   permissions CategoryPermission[]
@@ -559,9 +625,9 @@ model Message {
   to        Member    @relation("msgTo", fields: [toId], references: [id])
   toId      String
   body      String
-  kind      String    @default("TEXT")   // TEXT | IMAGE | DOCUMENT | CONTACT | LOCATION
-  mediaUrl  String?                        // for IMAGE / DOCUMENT
-  meta      String?                        // JSON: filename, contact card, lat/lng, etc.
+  kind      String    @default("TEXT") // TEXT | IMAGE | DOCUMENT | CONTACT | LOCATION
+  mediaUrl  String? // for IMAGE / DOCUMENT
+  meta      String? // JSON: filename, contact card, lat/lng, etc.
   createdAt DateTime  @default(now())
   readAt    DateTime?
 }
@@ -596,12 +662,12 @@ model Notification {
   id         String    @id @default(cuid())
   member     Member    @relation(fields: [memberId], references: [id])
   memberId   String
-  type       String    // SETU_REPLY | SETU_MATCH | REFERRAL_RECEIVED | REFERRAL_CLOSED |
-                        // APPROVAL_APPROVED | APPROVAL_REJECTED | LEAD_CAPTURED | BROADCAST |
-                        // CARD_ISSUED | INVITE_ACCEPTED
+  type       String // SETU_REPLY | SETU_MATCH | REFERRAL_RECEIVED | REFERRAL_CLOSED |
+  // APPROVAL_APPROVED | APPROVAL_REJECTED | LEAD_CAPTURED | BROADCAST |
+  // CARD_ISSUED | INVITE_ACCEPTED
   title      String
   body       String?
-  entityType String?   // Setu | Referral | ProfileEdit | Lead | Broadcast | NfcCard | Invitation
+  entityType String? // Setu | Referral | ProfileEdit | Lead | Broadcast | NfcCard | Invitation
   entityId   String?
   meta       Json?
   readAt     DateTime?

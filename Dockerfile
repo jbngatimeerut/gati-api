@@ -1,5 +1,6 @@
 FROM node:20-slim
-RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+# ffmpeg (for ffprobe) enforces the 30s ad-video duration cap server-side, not just client-side.
+RUN apt-get update && apt-get install -y openssl ffmpeg && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY package*.json ./
 RUN npm install

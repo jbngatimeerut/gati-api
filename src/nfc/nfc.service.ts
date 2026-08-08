@@ -87,10 +87,14 @@ export class NfcService {
   }
 
   // Reverse capture: whoever tapped leaves their card -> becomes a lead.
-  async createLead(slug: string, dto: { name: string; phone?: string; email?: string; company?: string; interests?: string; note?: string }) {
+  async createLead(slug: string, dto: { name: string; phone?: string; email?: string; company?: string; interests?: string; note?: string; campaignId?: string }) {
     const m = await this.prisma.member.findUnique({ where: { slug } });
     if (!m) throw new NotFoundException('Card not found');
-    const lead = await this.prisma.lead.create({ data: { memberId: m.id, ...dto } });
+    const { campaignId, ...rest } = dto;
+    // Attribute the lead to an ad campaign only if that campaign is real — a bad/stale id is
+    // silently dropped rather than failing the whole lead capture.
+    const validCampaignId = campaignId && (await this.prisma.adCampaign.count({ where: { id: campaignId } })) ? campaignId : undefined;
+    const lead = await this.prisma.lead.create({ data: { memberId: m.id, ...rest, campaignId: validCampaignId } });
     this.notifications.notify(m.id, {
       type: 'LEAD_CAPTURED',
       title: `New lead: ${dto.name}`,

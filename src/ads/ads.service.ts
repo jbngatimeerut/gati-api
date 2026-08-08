@@ -148,8 +148,17 @@ export class AdsService {
       .map(({ c }) => c);
   }
 
+  // Every live sponsor is guaranteed a listing here, regardless of which other zone(s) their
+  // campaign is placed in — this is the one place a member can browse the full sponsor roster,
+  // not just one more slot a campaign happens to be assigned to.
   async sponsorsPage() {
-    const campaigns = await this.serveAds('SPONSORS_PAGE');
+    const now = new Date();
+    const campaigns = await this.prisma.adCampaign.findMany({
+      where: { status: 'LIVE', OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
+      include: { sponsor: true, tier: true },
+    });
+    const priorityOf = (c: (typeof campaigns)[number]) => (c.tier?.active ? c.tier.priority : Number.MAX_SAFE_INTEGER);
+    campaigns.sort((a, b) => priorityOf(a) - priorityOf(b));
     const grouped = new Map<string, typeof campaigns>();
     for (const c of campaigns) {
       const key = c.tier?.name ?? 'Community Spotlight';

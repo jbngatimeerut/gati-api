@@ -27,6 +27,7 @@ import { MediaModule } from './media/media.module';
 import { MessagingModule } from './messaging/messaging.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { PremiumModule } from './premium/premium.module';
+import { AdsModule } from './ads/ads.module';
 
 @Module({
   imports: [
@@ -40,7 +41,7 @@ import { PremiumModule } from './premium/premium.module';
     // deployment, would need a Redis-backed ThrottlerStorage to scale horizontally.
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60000, limit: 60 }]),
     PrismaModule, AuditModule, AuthModule, MembersModule, ReferralsModule,
-    SetuModule, MeetingsModule, NfcModule, AdminModule, SettingsModule, BroadcastsModule, PaymentsModule, RolesModule, OnboardingModule, SearchModule, MailerModule, MailModule, MediaModule, MessagingModule, RealtimeModule, PremiumModule, SecurityModule,
+    SetuModule, MeetingsModule, NfcModule, AdminModule, SettingsModule, BroadcastsModule, PaymentsModule, RolesModule, OnboardingModule, SearchModule, MailerModule, MailModule, MediaModule, MessagingModule, RealtimeModule, PremiumModule, SecurityModule, AdsModule,
   ],
   providers: [
     { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },

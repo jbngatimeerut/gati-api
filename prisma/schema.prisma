@@ -142,6 +142,7 @@ model Member {
   messagesReceived Message[]     @relation("msgTo")
   notifications    Notification[]
   deviceTokens     DeviceToken[]
+  sponsorProfiles  Sponsor[]
 
   // One business category may only be held by one member within a group.
   @@unique([groupId, category])
@@ -290,6 +291,8 @@ enum AdSlot {
   HOME_HERO
   DIRECTORY_INLINE
   PROFILE_FOOTER
+  SETU_INLINE
+  SPONSORS_PAGE
 }
 enum AdStatus {
   DRAFT
@@ -298,10 +301,26 @@ enum AdStatus {
   ENDED
 }
 
+// Named sponsorship ladder (Title Sponsor / Powered By / Co-Powered By ...) — leadership-defined,
+// exact mirror of PremiumCategory below. One tier can hold many concurrent campaigns (e.g. three
+// businesses sharing "Co-Powered By"), rotated fairly by AdsService.serveAds().
+model SponsorshipTier {
+  id        String       @id @default(cuid())
+  chapterId String?
+  name      String
+  priority  Int          @default(100)
+  color     String
+  active    Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  campaigns AdCampaign[]
+}
+
 model Sponsor {
   id        String       @id @default(cuid())
   name      String
   contact   String?
+  member    Member?      @relation(fields: [memberId], references: [id])
+  memberId  String?
   createdAt DateTime     @default(now())
   campaigns AdCampaign[]
 }
@@ -310,6 +329,9 @@ model AdCampaign {
   id         String   @id @default(cuid())
   sponsor    Sponsor  @relation(fields: [sponsorId], references: [id])
   sponsorId  String
+  tier       SponsorshipTier? @relation(fields: [tierId], references: [id])
+  tierId     String?  // null = untiered "Community Spotlight" ad
+  chapterId  String?  // null = network-wide, mirrors SponsorshipTier/PremiumCategory
   slot       AdSlot
   title      String
   imageUrl   String?
@@ -320,6 +342,8 @@ model AdCampaign {
   impressions Int     @default(0)
   clicks     Int      @default(0)
   createdAt  DateTime @default(now())
+  // Dedupes the expiry-sweep notification — exact mirror of PaymentRequest.overdueNotifiedAt.
+  expiredNotifiedAt DateTime?
 }
 
 // ---------- Marketplace (Phase 3): catalog + order + split payment + fulfillment ----------
